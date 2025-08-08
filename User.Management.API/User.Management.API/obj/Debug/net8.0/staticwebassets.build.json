@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "RTHQhoLhS0QmgZRM0B/eF6wHehEh/XraS0/rOcXLzN0=",
+  "Source": "User.Management.API",
+  "BasePath": "_content/User.Management.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}
