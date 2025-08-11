@@ -28,6 +28,9 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>()
 // Add Config for Required Email
 builder.Services.Configure<IdentityOptions>(opts=>opts.SignIn.RequireConfirmedEmail=true);
 
+//email link generate token is valid for 10 hours 
+builder.Services.Configure<DataProtectionTokenProviderOptions>(opts=>opts.TokenLifespan = TimeSpan.FromHours(10));
+
 // Adding Authentication
 
 builder.Services.AddAuthentication(options =>
