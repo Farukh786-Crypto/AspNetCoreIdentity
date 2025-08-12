@@ -18,8 +18,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseMySql(connectionString,
                 ServerVersion.AutoDetect(connectionString)));
 
-
-
 // For Identity
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -32,7 +30,6 @@ builder.Services.Configure<IdentityOptions>(opts=>opts.SignIn.RequireConfirmedEm
 builder.Services.Configure<DataProtectionTokenProviderOptions>(opts=>opts.TokenLifespan = TimeSpan.FromHours(10));
 
 // Adding Authentication
-
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -55,10 +52,10 @@ builder.Services.AddAuthentication(options =>
 });
 
 // Add Email Config
-
 var emailConfiguration = builder.Configuration.GetSection("EmailConfiguration").Get<EmailConfiguration>();
 builder.Services.AddSingleton(emailConfiguration);
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IUserManagement, UserManagement>();
 
 
 // Add services to the container.

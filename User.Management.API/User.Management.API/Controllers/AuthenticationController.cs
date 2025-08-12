@@ -1,19 +1,14 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using User.Management.API.Models;
-using User.Management.API.Models.Authentication.Login;
-using User.Management.API.Models.Authentication.SignUp;
 using User.Management.Service.Models;
+using User.Management.Service.Models.Authentication.Login;
+using User.Management.Service.Models.Authentication.SignUp;
 using User.Management.Service.Services;
 
 namespace User.Management.API.Controllers
@@ -24,85 +19,47 @@ namespace User.Management.API.Controllers
     {
         private readonly UserManager<IdentityUser> _userManager;
         private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly IUserManagement _user;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _configuration;
 
         public AuthenticationController(UserManager<IdentityUser> userManager,
-            SignInManager<IdentityUser> signInManager,
+            SignInManager<IdentityUser> signInManager,IUserManagement user,
             RoleManager<IdentityRole> roleManager,IEmailService emailService, IConfiguration configuration)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _user = user;
             _roleManager = roleManager;
             _emailService = emailService;
             _configuration = configuration;
         }
 
         [HttpPost]
-        public async Task<IActionResult> RegisterAdmin([FromBody] RegisterUser registerUser,string role)
+        public async Task<IActionResult> RegisterAdmin([FromBody] RegisterUser registerUser)
         {
-            // first we check user is already present or not
-            var user = await _userManager.FindByEmailAsync(registerUser.Email);
-            if(user!=null)
+            var tokenResponse = await _user.CreateUserWithTokenAsync(registerUser);
+            if (tokenResponse.IsSuccess)
             {
-                // if user is already present then return bad request
-                return StatusCode(StatusCodes.Status403Forbidden,
-                    new Response
-                    {
-                        Status = "Error",
-                        Message = "User already exists"
-                    });
-            }
-            // if the user does not exit then add user in the database
-            IdentityUser newUser = new IdentityUser
-            {
-                UserName = registerUser.UserName,
-                Email = registerUser.Email,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                TwoFactorEnabled = true
-            };
-            if (await _roleManager.RoleExistsAsync(role))
-            {
-                var result = await _userManager.CreateAsync(newUser, registerUser.Password);
-                if (!result.Succeeded)
-                {
-                    return StatusCode(StatusCodes.Status500InternalServerError,
-                    new Response
-                    {
-                        Status = "Error",
-                        Message = "User creation failed"
-                    });
-                }
-                // assign the role for this new user
-                await _userManager.AddToRoleAsync(newUser, role);
-
-                // Add Token to verify the email ...
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(newUser);
-                var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication",
-                    new { token = token, email = registerUser.Email }, Request.Scheme);
-                // Send Email to the user
-                var message = new Message(new string[] { registerUser.Email }, "Confirm your email",
-                    $"<h1>Click the link to confirm your email</h1><br/><a href='{confirmationLink}'>Click here to confirm</a>");
-
+                await _user.AssignRoleToUserAsync(registerUser.Role,tokenResponse.Response.User);
+                var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { tokenResponse.Response.Token, email = registerUser.Email }, Request.Scheme);
+                var message = new Message(new string[] { registerUser.Email! }, "Confirmation email Link", confirmationLink!);
                 _emailService.SendEmail(message);
-
                 return StatusCode(StatusCodes.Status200OK,
                     new Response
                     {
                         Status = "Success",
-                        Message = $"User Createred & Email sent to {registerUser.Email} Sucessfully"
+                        Message = $"User created successfully. Please check your email {registerUser.Email} for confirmation link.",
+                        IsSuccess = true
                     });
             }
-            else
-            {
-                return StatusCode(StatusCodes.Status404NotFound,
-                    new Response
-                    {
-                        Status = "Error",
-                        Message = "Role does not exist"
-                    });
-            }
+            return StatusCode(StatusCodes.Status500InternalServerError,
+               new Response
+               {
+                   Message = tokenResponse.Message,
+                   IsSuccess = tokenResponse.IsSuccess,
+               });
         }
 
         /* [HttpGet]
@@ -160,6 +117,7 @@ namespace User.Management.API.Controllers
             var user = await _userManager.FindByNameAsync(loginModel.UserName);
             if (user.TwoFactorEnabled)
             {
+                // first lof out
                 await _signInManager.SignOutAsync();
                 await _signInManager.PasswordSignInAsync(user,loginModel.Password,false,true);
                 var token = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
