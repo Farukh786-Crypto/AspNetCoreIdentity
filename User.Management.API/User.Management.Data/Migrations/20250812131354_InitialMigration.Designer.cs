@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using User.Management.API.Models;
 
 #nullable disable
 
-namespace User.Management.API.Migrations
+namespace User.Management.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250812131354_InitialMigration")]
+    partial class InitialMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,21 +53,21 @@ namespace User.Management.API.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "989e3b67-5509-4d5d-ab2d-f64aad23fa1c",
+                            Id = "bd3e63cc-88ba-4d5d-af06-68d0f263b0f1",
                             ConcurrencyStamp = "1",
                             Name = "Admin",
                             NormalizedName = "Admin"
                         },
                         new
                         {
-                            Id = "7286a7ef-093c-436d-a263-da784c7cddf6",
+                            Id = "46a0dff0-b2b4-40af-ac17-2e8292ecc4e3",
                             ConcurrencyStamp = "2",
                             Name = "User",
                             NormalizedName = "User"
                         },
                         new
                         {
-                            Id = "8651fbc1-8a6f-4fd8-842c-32b1029d0cb0",
+                            Id = "f0ae35b1-109e-47f6-a866-3bc33992ea9c",
                             ConcurrencyStamp = "3",
                             Name = "HR",
                             NormalizedName = "HR"
