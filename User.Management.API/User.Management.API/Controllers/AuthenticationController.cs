@@ -113,56 +113,57 @@ namespace User.Management.API.Controllers
         [Route("Login")]
         public async Task<IActionResult> Login([FromBody] LoginModel loginModel)
         {
-            // cheking the user ..
-            var user = await _userManager.FindByNameAsync(loginModel.UserName);
-            if (user.TwoFactorEnabled)
+            var loginOtpResponse = await _user.GetOtpByLoginAsync(loginModel);
+            if(loginOtpResponse.Response!=null)
             {
-                // first lof out
-                await _signInManager.SignOutAsync();
-                await _signInManager.PasswordSignInAsync(user,loginModel.Password,false,true);
-                var token = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
-                var message = new Message(new string[] { user.Email }, "OTP Verification",
-                    $"<h1>Your OTP is {token}</h1><br/><p>Use this OTP to login</p>");
-                _emailService.SendEmail(message);
-                return
-                    StatusCode(StatusCodes.Status200OK,
-                    new Response
-                    {
-                        Status = "Sucess",
-                        Message = $"We have sent an OTP to your Email {user.Email}"
-                    });
-            }
+                // cheking the user ..
+                var user = loginOtpResponse.Response.User;
+                if (user.TwoFactorEnabled)
+                {
+                    var token = loginOtpResponse.Response.Token;
+                    var message = new Message(new string[] { user.Email! }, "OTP Confirmation",
+                        $"<h1>Your OTP is {token}</h1><br/><p>Use this OTP to login</p>");
+                    _emailService.SendEmail(message);
+                    return
+                        StatusCode(StatusCodes.Status200OK,
+                        new Response
+                        {
+                            IsSuccess = loginOtpResponse.IsSuccess,
+                            Status = "Sucess",
+                            Message = $"We have sent an OTP to your Email {user.Email}"
+                        });
+                }
 
-            // cheking the password of user
-            if (user != null && await _userManager.CheckPasswordAsync(user, loginModel.Password))
-            {
-                // claimlist creation
-                var authClaims = new List<Claim>
+                // cheking the password of user
+                if (user != null && await _userManager.CheckPasswordAsync(user, loginModel.Password))
+                {
+                    // claimlist creation
+                    var authClaims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, user.UserName),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
                 };
 
-                // we add role to the list
-                var roles = await _userManager.GetRolesAsync(user);
-                foreach (var role in roles)
-                {
-                    authClaims.Add(new Claim(ClaimTypes.Role, role));
-                }   
+                    // we add role to the list
+                    var roles = await _userManager.GetRolesAsync(user);
+                    foreach (var role in roles)
+                    {
+                        authClaims.Add(new Claim(ClaimTypes.Role, role));
+                    }
 
-                // generate the token with claims ..
-                var jwtToken = GetToken(authClaims);
+                    // generate the token with claims ..
+                    var jwtToken = GetToken(authClaims);
 
-                return Ok(new
-                {
-                    token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
-                    expiration = jwtToken.ValidTo
-                });
+                    return Ok(new
+                    {
+                        token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
+                        expiration = jwtToken.ValidTo
+                    });
 
-                // return the token ..
+                    // return the token ..
+                }
             }
             return Unauthorized();
-
         }
 
         [HttpPost]
