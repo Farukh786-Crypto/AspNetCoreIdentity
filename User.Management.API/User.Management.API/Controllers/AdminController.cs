@@ -4,13 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace User.Management.API.Controllers
 {
-    [Authorize(Roles = "HR")]
-    //[Authorize]
+    [Authorize(Roles = "Admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class AdminController : ControllerBase
     {
-        [HttpGet]
+        [HttpGet("employees")]
         public IEnumerable<string> Get()
         {
             return new List<string> { "Ahmed" , "Ali" , "Ahsan" };
